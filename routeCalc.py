@@ -9,8 +9,8 @@ class routeCalc:
 		self.curX = curX
 		self.curY = curY
 
-	pathX = [0, 2, -2, 2, -2]
-	pathY = [0, 3, 6, 9, 12]
+	pathX = [0, 3, 5, 7, 9]
+	pathY = [0, 4, 10, 13, 10]
 	
 	def moveNorth(self):
 		print "moving north"
@@ -73,11 +73,12 @@ def main():
 				print (route.curX, route.curY)
 	
 	#Calculates and prints relative distances between points
-	#Check this.... might not work with negatives
+	#Only works when path continues to the right and up...
 	newXlist = [i ** 2 for i in route.pathX]
 	newYlist = [j ** 2 for j in route.pathY]
 	hypotenuselist = map(math.sqrt, map(add, newXlist, newYlist))
-	print "Relative distances: ",map(lambda(a, b):b - a, pairwise(hypotenuselist))
+	print "Relative distances: ",map(lambda(a, b):abs(b - a), pairwise(hypotenuselist))
+	print "Relative distances: ",[abs(y - x) for x,y in zip(hypotenuselist,hypotenuselist[1:])] #same as above
 	
 	#Plots actual route with solid blue line
 	plt.plot(xRoute, yRoute, '-o')
@@ -87,6 +88,18 @@ def main():
 	
 	#Draws graphics with scaled axes
 	plt.axis([(min(route.pathX)-2), (max(route.pathX)+2), (min(route.pathX)-2), (max(route.pathY)+2)])
+	
+	# calculate polynomial
+	z = np.polyfit(route.pathX, route.pathY, 3)
+	f = np.poly1d(z)
+
+	# calculate new x's and y's
+	x_new = np.linspace(route.pathX[0], route.pathX[-1], 50)
+	y_new = f(x_new)
+	
+	#Draws a smooth path, more natural movement of vehicle. Could be used as a baseline
+	plt.plot(x_new, y_new, 'r')
+	plt.xlim([route.pathX[0]-1, route.pathX[-1] + 1 ])
 	plt.show()
 			
 main()
