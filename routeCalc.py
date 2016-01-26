@@ -9,7 +9,7 @@ class routeCalc:
 		self.curX = curX
 		self.curY = curY
 
-	pathX = [0, 2, -2, 2, -2]
+	pathX = [0, -2, -4, 5, 6]
 	pathY = [0, 3, 6, 9, 12]
 	
 	def moveNorth(self):
