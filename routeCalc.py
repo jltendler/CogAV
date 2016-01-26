@@ -1,5 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from operator import *
+import math
+from itertools import izip, tee
 
 class routeCalc:
 	def __init__(self, curX, curY):
@@ -23,12 +26,15 @@ class routeCalc:
 		
 	def moveWest(self):
 		print "moving west"
-		self.curX -= 1
-	
-	#TODO: Eventually figure out how to calculate proper direction (tangent(y/x))
-	#TODO: Will need to add new parameter "facing" (in degrees)	
-	#TODO: Calculate distance between every point, i.e. hypotenuse (in progress)
-	
+		self.curX -= 1	
+
+#This is used to calculate relative distances between GPS points
+#Credit: @pillmuncher - stackoverflow
+def pairwise(iterable):
+    a, b = tee(iterable)
+    next(b, None)
+    return izip(a, b)
+
 def main():
 	i = 0
 	xRoute = []
@@ -66,6 +72,13 @@ def main():
 				print "reached destination point"
 				print (route.curX, route.curY)
 	
+	#Calculates and prints relative distances between points
+	#Check this.... might not work with negatives
+	newXlist = [i ** 2 for i in route.pathX]
+	newYlist = [j ** 2 for j in route.pathY]
+	hypotenuselist = map(math.sqrt, map(add, newXlist, newYlist))
+	print "Relative distances: ",map(lambda(a, b):b - a, pairwise(hypotenuselist))
+	
 	#Plots actual route with solid blue line
 	plt.plot(xRoute, yRoute, '-o')
 	
@@ -77,7 +90,9 @@ def main():
 	plt.show()
 			
 main()
-			
+
+#TODO: Eventually figure out how to calculate proper direction (tangent(y/x))
+#TODO: Will need to add new parameter "facing" (in degrees)		
 		
 	
 	
