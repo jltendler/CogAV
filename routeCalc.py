@@ -24,6 +24,29 @@ class routeCalc:
 	def moveWest(self):
 		print "moving west"
 		self.curX -= 1
+	
+	#TODO: (Tyler) - figure out this functionality
+	#TODO: Eventually figure out how to calculate proper direction (tangent(y/x))
+	#TODO: Will need to add new parameter "facing" (in degrees)
+	def moveNortheast(self):
+		print "moving northeast"
+		self.curY += 1
+		self.curX += 1
+		
+	def moveNorthwest(self):
+		print "moving northwest"
+		self.curY += 1
+		self.curX -= 1
+		
+	def moveSoutheast(self):
+		print "moving southeast"
+		self.curY -= 1
+		self.curX += 1
+		
+	def moveSouthwest(self):
+		print "moving southwest"
+		self.curY -= 1
+		self.curX -= 1
 		
 	
 	
@@ -41,21 +64,25 @@ def main():
 				route.moveEast()
 				xRoute.append(route.curX)
 				yRoute.append(route.curY)
+				
 			while route.pathX[i] - route.curX < 0:
 				print (route.curX, route.curY)
 				route.moveWest()
 				xRoute.append(route.curX)
 				yRoute.append(route.curY)
+				
 			while route.pathY[i] - route.curY > 0:
 				print (route.curX, route.curY)
 				route.moveNorth()
 				xRoute.append(route.curX)
 				yRoute.append(route.curY)
+				
 			while route.pathY[i] - route.curY < 0:
 				print (route.curX, route.curY)
 				route.moveSouth()
 				xRoute.append(route.curX)
 				yRoute.append(route.curY)
+				
 			if route.curX is route.pathX[i] and route.curY is route.pathY[i]:
 				print "reached destination point"
 				print (route.curX, route.curY)
