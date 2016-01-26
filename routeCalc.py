@@ -25,30 +25,9 @@ class routeCalc:
 		print "moving west"
 		self.curX -= 1
 	
-	#TODO: (Tyler) - figure out this functionality
 	#TODO: Eventually figure out how to calculate proper direction (tangent(y/x))
-	#TODO: Will need to add new parameter "facing" (in degrees)
-	def moveNortheast(self):
-		print "moving northeast"
-		self.curY += 1
-		self.curX += 1
-		
-	def moveNorthwest(self):
-		print "moving northwest"
-		self.curY += 1
-		self.curX -= 1
-		
-	def moveSoutheast(self):
-		print "moving southeast"
-		self.curY -= 1
-		self.curX += 1
-		
-	def moveSouthwest(self):
-		print "moving southwest"
-		self.curY -= 1
-		self.curX -= 1
-		
-	
+	#TODO: Will need to add new parameter "facing" (in degrees)	
+	#TODO: Calculate distance between every point, i.e. hypotenuse (in progress)
 	
 def main():
 	i = 0
@@ -87,12 +66,11 @@ def main():
 				print "reached destination point"
 				print (route.curX, route.curY)
 	
-	#Plots fastest route with dashed green line
-	plt.plot(route.pathX, route.pathY, 'go--')
-	plt.axis([(min(route.pathX)-2), (max(route.pathX)+2), (min(route.pathX)-2), (max(route.pathY)+2)])
-	
 	#Plots actual route with solid blue line
 	plt.plot(xRoute, yRoute, '-o')
+	
+	#Plots fastest route with dashed green line
+	plt.plot(route.pathX, route.pathY, 'go--')
 	
 	#Draws graphics with scaled axes
 	plt.axis([(min(route.pathX)-2), (max(route.pathX)+2), (min(route.pathX)-2), (max(route.pathY)+2)])
