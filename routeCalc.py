@@ -77,8 +77,12 @@ def main():
 	newXlist = [i ** 2 for i in route.pathX]
 	newYlist = [j ** 2 for j in route.pathY]
 	hypotenuselist = map(math.sqrt, map(add, newXlist, newYlist))
+	print "original x list: ",route.pathX
+	print "original y list: ",route.pathY
+	print "squared x list: ",newXlist
+	print "squared y list: ",newYlist
 	print "Relative distances: ",map(lambda(a, b):abs(b - a), pairwise(hypotenuselist))
-	print "Relative distances: ",[abs(y - x) for x,y in zip(hypotenuselist,hypotenuselist[1:])] #same as above
+	#print "Relative distances: ",[abs(y - x) for x,y in zip(hypotenuselist,hypotenuselist[1:])] #same as above
 	
 	#Plots actual route with solid blue line
 	plt.plot(xRoute, yRoute, '-o')
