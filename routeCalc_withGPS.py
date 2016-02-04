@@ -8,30 +8,32 @@ class routeCalc:
 	def __init__(self, curX, curY):
 		self.curX = curX
 		self.curY = curY
+		self.waypointCount = 0
 
-	pathX = [0, -2, -4, 5, 6]
-	pathY = [0, 3, 6, 9, 12]
+	pathX = [40.071374969556928, 40.071258964017034, 40.07075596600771, 40.070976996794343, 40.071331970393658]
+	pathY = [-105.22978898137808, -105.23002602159977, -105.22971798665822, -105.22919101640582, -105.22946602664888]
 
 	def testWaypoint(self):
 		self.waypointCount += 1
-		if self.waypointCount == 4:
+		if self.waypointCount == len(pathX) - 1:
 			print "PASS - All waypoints reached"
-			
+			 
+	
 	def moveNorth(self):
 		print "moving north"
-		self.curY += 1
+		self.curY += 0.0001
 		
 	def moveSouth(self):
 		print "moving south"
-		self.curY -= 1
+		self.curY -= 0.0001
 		
 	def moveEast(self):
 		print "moving east"
-		self.curX += 1
+		self.curX += 0.0001
 		
 	def moveWest(self):
 		print "moving west"
-		self.curX -= 1	
+		self.curX -= 0.0001	
 
 #This is used to calculate relative distances between GPS points
 #Credit: @pillmuncher - stackoverflow
@@ -45,41 +47,38 @@ def main():
 	xRoute = []
 	yRoute = []
 	route = routeCalc(0,0)
-	route.waypointCount = 0
 	
-	while not ((route.curX == route.pathX[len(route.pathX)-1]) and (route.curY == route.pathY[len(route.pathY)-1])):	#Not done
-		if ((route.curX == route.pathX[i]) and (route.curY == route.pathY[i])):  #At current goal
+	while not ((route.curX - route.pathX[len(route.pathX)-1] < 0.0001) and (route.curY - route.pathY[len(route.pathY)-1] < 0.0001)):	#Not done
+		if (route.pathX[i] - route.curX < 0.0001 and route.pathY[i] - route.curY < 0.0001):  #At current goal
 			i += 1
-			while route.pathX[i] - route.curX > 0:
+			while route.pathX[i] - route.curX > 0.0001:
 				print (route.curX, route.curY)
 				route.moveEast()
 				xRoute.append(route.curX)
 				yRoute.append(route.curY)
 				
-			while route.pathX[i] - route.curX < 0:
+			while route.pathX[i] - route.curX < 0.0001:
 				print (route.curX, route.curY)
 				route.moveWest()
 				xRoute.append(route.curX)
 				yRoute.append(route.curY)
 				
-			while route.pathY[i] - route.curY > 0:
+			while route.pathY[i] - route.curY > 0.0001:
 				print (route.curX, route.curY)
 				route.moveNorth()
 				xRoute.append(route.curX)
 				yRoute.append(route.curY)
 				
-			while route.pathY[i] - route.curY < 0:
+			while route.pathY[i] - route.curY < 0.0001:
 				print (route.curX, route.curY)
 				route.moveSouth()
 				xRoute.append(route.curX)
 				yRoute.append(route.curY)
 				
-			if route.curX is route.pathX[i] and route.curY is route.pathY[i]:
-				
+			if ((route.pathX[i] - route.curX) < 0.0001) and ((route.pathY[i] - route.curY) < 0.0001):
 				print "reached destination point"
 				print (route.curX, route.curY)
-				route.testWaypoint()
-	
+	"""
 	#Calculates and prints relative distances between points
 	#Only works when path continues to the right and up...
 	newXlist = [i ** 2 for i in route.pathX]
@@ -113,9 +112,13 @@ def main():
 	plt.plot(x_new, y_new, 'r')
 	plt.xlim([route.pathX[0]-1, route.pathX[-1] + 1 ])
 	plt.show()
+	"""
 			
 main()
 
 #TODO: Eventually figure out how to calculate proper direction (tangent(y/x))
 #TODO: Will need to add new parameter "facing" (in degrees)		
+		
+	
+	
 		
