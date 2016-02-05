@@ -9,8 +9,8 @@ class routeCalc:
 		self.curX = curX
 		self.curY = curY
 
-	pathX = [0, 2, 4, 6]
-	pathY = [0, 2, 4, 6]
+	pathX = [0, 2, 4, 6, 4]
+	pathY = [0, 2, 6, 2, 0]
 
 	def testWaypoint(self):
 		self.waypointCount += 1
@@ -32,13 +32,29 @@ class routeCalc:
 	def moveWest(self):
 		print "moving west"
 		self.curX -= 1	
-
-#This is used to calculate relative distances between GPS points
-#Credit: @pillmuncher - stackoverflow
-def pairwise(iterable):
-    a, b = tee(iterable)
-    next(b, None)
-    return izip(a, b)
+		
+	def findAngle(self):
+		#Calculating the arctan of path
+		arctanList = []
+		for i in range(len(self.pathX)):
+			if i is 0:
+				arctanList.append(np.arctan2(self.pathY[i], self.pathX[i]))
+			else:
+				arctanList.append(np.arctan2(self.pathY[i]-self.pathY[i-1], self.pathX[i]-self.pathX[i-1]))
+		
+		arctanList = np.degrees(arctanList)
+		return arctanList
+		
+	def findDistance(self):
+		#Calculating the distance between waypoints
+		distList = []
+		for i in range(len(self.pathX)):
+			if i is 0:
+				distList.append(np.sqrt(abs(np.square(self.pathX[i]) + np.square(self.pathY[i]))))
+			else:
+				distList.append(np.sqrt(abs(np.square(self.pathX[i] - self.pathX[i-1]) + np.square(self.pathY[i] - self.pathY[i-1]))))
+		
+		return distList
 
 def main():
 	i = 0
@@ -89,12 +105,8 @@ def main():
 	print "original y list: ",route.pathY
 	print "squared x list: ",newXlist
 	print "squared y list: ",newYlist
-	print "Relative distances: ",map(lambda(a, b):abs(b - a), pairwise(hypotenuselist))
-	#print "Relative distances: ",[abs(y - x) for x,y in zip(hypotenuselist,hypotenuselist[1:])] #same as above
-	
-	#Calculating the arctan of path
-	arctan = np.arctan2(route.pathX, route.pathY)
-	print arctan
+	print "Relative distances: ",route.findDistance()
+	print "Relative angles: ",route.findAngle()
 	
 	#Plots actual route with solid blue line
 	plt.plot(xRoute, yRoute, '-o')
