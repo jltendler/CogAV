@@ -9,8 +9,8 @@ class routeCalc:
 		self.curX = curX
 		self.curY = curY
 
-	pathX = [0, -2, -4, 5, 6]
-	pathY = [0, 3, 6, 9, 12]
+	pathX = [0, 2, 4, 6]
+	pathY = [0, 2, 4, 6]
 
 	def testWaypoint(self):
 		self.waypointCount += 1
@@ -91,6 +91,10 @@ def main():
 	print "squared y list: ",newYlist
 	print "Relative distances: ",map(lambda(a, b):abs(b - a), pairwise(hypotenuselist))
 	#print "Relative distances: ",[abs(y - x) for x,y in zip(hypotenuselist,hypotenuselist[1:])] #same as above
+	
+	#Calculating the arctan of path
+	arctan = np.arctan2(route.pathX, route.pathY)
+	print arctan
 	
 	#Plots actual route with solid blue line
 	plt.plot(xRoute, yRoute, '-o')
