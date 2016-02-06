@@ -45,6 +45,15 @@ class routeCalc:
 		arctanList = np.degrees(arctanList)
 		return arctanList
 		
+	def findAbsAngle(self):
+		#Calculating the absolute arctans of path
+		absArctanList = []
+		for i in range(len(self.pathX)):
+				absArctanList.append(np.arctan2(self.pathY[i], self.pathX[i]))
+		
+		absArctanList = np.degrees(absArctanList)
+		return absArctanList
+		
 	def findDistance(self):
 		#Calculating the distance between waypoints
 		distList = []
@@ -55,6 +64,14 @@ class routeCalc:
 				distList.append(np.sqrt(abs(np.square(self.pathX[i] - self.pathX[i-1]) + np.square(self.pathY[i] - self.pathY[i-1]))))
 		
 		return distList
+		
+	def findAbsDistance(self):
+		#Calculating the distance of each point from origin
+		absDistList = []
+		for i in range(len(self.pathX)):
+				absDistList.append(np.sqrt(abs(np.square(self.pathX[i]) + np.square(self.pathY[i]))))
+
+		return absDistList
 
 def main():
 	i = 0
@@ -106,8 +123,23 @@ def main():
 	print "squared x list: ",newXlist
 	print "squared y list: ",newYlist
 	print "Relative distances: ",route.findDistance()
+	print "Absolute distances (from origin): ",route.findAbsDistance()
 	print "Relative angles: ",route.findAngle()
+	print "Absolute angles: ",route.findAbsAngle()
 	
+	#Plots the points on Polar Plot. Note, must use absolute angles and distances
+	#TODO: Take in lists from those functions 
+	lengths = np.array([0, 45, 56, 18, 0])
+	angles = np.array([0, 2.828, 7.211, 6.324, 4])
+
+	ax = plt.subplot(111, projection='polar')
+	ax.plot(lengths * np.pi / 180, angles, 'r', linewidth=3)
+	ax.grid(True)
+
+	ax.set_title("Simulating vehicle movement", va='bottom')
+	plt.show()
+	
+	""" **Note this plotted the points on a Cartesian Plot
 	#Plots actual route with solid blue line
 	plt.plot(xRoute, yRoute, '-o')
 	
@@ -129,7 +161,8 @@ def main():
 	plt.plot(x_new, y_new, 'r')
 	plt.xlim([route.pathX[0]-1, route.pathX[-1] + 1 ])
 	plt.show()
-			
+	"""
+		
 main()
 
 #TODO: Eventually figure out how to calculate proper direction (tangent(y/x))
