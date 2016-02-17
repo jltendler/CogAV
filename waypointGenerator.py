@@ -21,22 +21,22 @@ def gen_random_waypoints_onPath():
 			i += 1
 			while latPath[i] - curLat > 0:
 				curLat += 1
-				randLat = float(curLat) + random.uniform(0, 10) # add random float between 0 and 10 to current position
+				randLat = float(curLat) + random.uniform(0, 0.0001) # add random float between 0 and 10 to current position
 				lattitude_list.append(randLat)
 			
 			while latPath[i] - curLat < 0:
 				curLat -= 1
-				randLat = float(curLat) + random.uniform(0, 10) # add random float between 0 and 10 to current position
+				randLat = float(curLat) + random.uniform(0, 0.0001) # add random float between 0 and 10 to current position
 				lattitude_list.append(randLat)
 			
 			while lonPath[i] - curLon > 0:
 				curLon += 1
-				randLon = float(curLon) + random.uniform(0, 10) # add random float between 0 and 10 to current position
+				randLon = float(curLon) + random.uniform(0, 0.0001) # add random float between 0 and 10 to current position
 				longitude_list.append(randLon)
 			
 			while lonPath[i] - curLon < 0:
 				curLon -= 1
-				randLon = float(curLon) + random.uniform(0, 10) # add random float between 0 and 10 to current position
+				randLon = float(curLon) + random.uniform(0, 0.0001) # add random float between 0 and 10 to current position
 				longitude_list.append(randLon)
 	
 	return lattitude_list, longitude_list
