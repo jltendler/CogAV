@@ -1,7 +1,20 @@
 import random
+import decimal
 
-latPath = [50, 55, 60, 65, 70, 65, 50, 45, 40]
-lonPath = [40, 45, 50, 55, 60, 55, 50, 35, 30]
+decimal.getcontext().prec = 9
+
+latPath = [40.071374, 40.071258, 40.070755, 40.070976, 40.071331]
+lonPath = [-105.229788, -105.230026, -105.229717, -105.229191, -105.229466]
+
+for x in range(len(latPath)):
+	latPath[x] = decimal.Decimal(latPath[x])
+	latPath[x]+=0
+
+for x in range(len(lonPath)):
+	lonPath[x] = decimal.Decimal(lonPath[x])
+	lonPath[x]+=0
+	
+
 """
 This will generate random points around each position as car moves from start of path
 to the end of path in a step wise motion.
@@ -10,42 +23,48 @@ and figure out how to make it useful in our route calculation
 TODO: fit random GPS generation to a poly-fit curve path or fastest route
 """
 def gen_random_waypoints_onPath():
-	lattitude_list = []
-	longitude_list = []
+	coordinate_list = []
 	curLat = latPath[0]
 	curLon = lonPath[0]
 
+		
 	i = 0
-	while not ((curLat == latPath[len(latPath) - 1]) and (curLon == lonPath[len(lonPath) - 1])): # Not at the end
-		if ((curLat == latPath[i]) and (curLon == lonPath[i])): # At point in path
+	while not ((curLat == latPath[len(latPath) - 1]) and (curLon == lonPath[len(lonPath) - 1])): #Not at the end
+		if ((curLat == latPath[i]) and (curLon == lonPath[i])): #At point in path
+			print "Hit the mother fucking point"
 			i += 1
-			while latPath[i] - curLat > 0:
-				curLat += 1
-				randLat = float(curLat) + random.uniform(0, 0.0001) # add random float between 0 and 10 to current position
-				lattitude_list.append(randLat)
-			
-			while latPath[i] - curLat < 0:
-				curLat -= 1
-				randLat = float(curLat) + random.uniform(0, 0.0001) # add random float between 0 and 10 to current position
-				lattitude_list.append(randLat)
-			
-			while lonPath[i] - curLon > 0:
-				curLon += 1
-				randLon = float(curLon) + random.uniform(0, 0.0001) # add random float between 0 and 10 to current position
-				longitude_list.append(randLon)
-			
-			while lonPath[i] - curLon < 0:
-				curLon -= 1
-				randLon = float(curLon) + random.uniform(0, 0.0001) # add random float between 0 and 10 to current position
-				longitude_list.append(randLon)
-	
-	return lattitude_list, longitude_list
+			increment = decimal.Decimal(.000001)
+			error = decimal.Decimal(random.randrange(10))/1000000 
+			while latPath[i] - curLat > 0.0:
+				curLat +=increment
+				randLat = curLat + error #add random float to current position to account for GPS error
+				coordinate_list.append((randLat, curLon))
+				print (curLat, curLon)
+
+			while latPath[i] - curLat < 0.0:
+				curLat -= increment
+				randLat = curLat + error #add random float to current position to account for GPS error
+				coordinate_list.append((randLat, curLon))
+				print (curLat, curLon)
+
+			while lonPath[i] - curLon > 0.0:
+				curLon += increment
+				randLon = curLon + error #add random float to current position to account for GPS error
+				coordinate_list.append((curLat, randLon))
+				print (curLat, curLon)
+
+			while lonPath[i] - curLon < 0.0:
+				curLon -= increment
+				randLon = curLon + error #add random float to current position to account for GPS error
+				coordinate_list.append((curLat, randLon))
+				print (curLat, curLon)
+
+	return coordinate_list
 
 def main():
-	(lat, lon) = gen_random_waypoints_onPath()
+	c = gen_random_waypoints_onPath()
 	coordinate_file = open("coordinates.txt", 'w')
-	for x in range(len(lon)):
-		coordinate_file.write(str((lat[x], lon[x])) + '\n')
+	for i in range(len(c)):
+		coordinate_file.write(str(c[i]) + '\n')
 	coordinate_file.close()
-
 main()
