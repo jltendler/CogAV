@@ -8,14 +8,28 @@ class routeCalc:
         self.curX = curX
         self.curY = curY
 
-    pathX = [0, 2, 4, 6, 4]
-    pathY = [0, 2, 6, 2, 0]
+    pathX = [0, 3, 4, 6, 4, 9, 2]
+    pathY = [0, 3, 6, 2, 0, 1, 8]
 
     def testWaypoint(self):
         self.waypointCount += 1
         if self.waypointCount == 4:
             print "PASS - All waypoints reached"
-
+            
+    """
+    MOVE FUNCTION
+    def move(self, angle, distance):
+		if heading != angle:
+			while heading > 0:
+				set PWM(0,0,[375 to 600])
+				this turns right
+			while heading < 0:
+				set PWM(0,0,[150 to 375])
+				this turns left
+		else:
+			set PWM(0,0,375) go straight
+	"""
+		
     def moveNorth(self):
         print "moving north"
         self.curY += 1
@@ -33,13 +47,22 @@ class routeCalc:
         self.curX -= 1
 
     def findAngle(self):
+		#Needs to compare pathX/pathY to curX/curY
         #Calculating the arctan of path
         arctanList = []
         for i in range(len(self.pathX)):
             if i is 0:
-                arctanList.append(np.arctan2(self.pathY[i], self.pathX[i]))
+                y = np.arctan2(self.pathY[i], self.pathX[i])
+                if y < 0:
+					acctanList.append((2*np.pi)+y)
+                else:
+                    arctanList.append(y)
             else:
-                arctanList.append(np.arctan2(self.pathY[i]-self.pathY[i-1], self.pathX[i]-self.pathX[i-1]))
+				x = np.arctan2(self.pathY[i]-self.pathY[i-1], self.pathX[i]-self.pathX[i-1])
+				if x < 0:
+					arctanList.append((2*np.pi)+(x))
+				else:
+					arctanList.append(x)
 
         arctanList = np.degrees(arctanList)
         return arctanList
@@ -61,7 +84,6 @@ class routeCalc:
                 distList.append(np.sqrt(abs(np.square(self.pathX[i]) + np.square(self.pathY[i]))))
             else:
                 distList.append(np.sqrt(abs(np.square(self.pathX[i] - self.pathX[i-1]) + np.square(self.pathY[i] - self.pathY[i-1]))))
-
         return distList
 
     def findAbsDistance(self):
@@ -69,10 +91,11 @@ class routeCalc:
         absDistList = []
         for i in range(len(self.pathX)):
                 absDistList.append(np.sqrt(abs(np.square(self.pathX[i]) + np.square(self.pathY[i]))))
-
         return absDistList
+        
     def checkIfFinished(self):
         return ((self.curX == self.pathX[len(self.pathX)-1]) and (self.curY == self.pathY[len(self.pathY)-1]))
+        
     def checkIfAtPair(self, i):
         #Checks if current coordinates are at the specified pathX/pathY coordinates
         return ((self.curX == self.pathX[i]) and (self.curY == self.pathY[i]))
@@ -121,23 +144,25 @@ def main():
     xSquaredList = [i ** 2 for i in route.pathX]
     ySquaredList = [j ** 2 for j in route.pathY]
     hypotenuselist = map(math.sqrt, map(add, xSquaredList, ySquaredList))
+    absAngles = route.findAbsAngle()
+    absDistances = route.findAbsDistance()
     print "original x list: ",route.pathX
     print "original y list: ",route.pathY
     print "squared x list: ",xSquaredList
     print "squared y list: ",ySquaredList
     print "Relative distances: ",route.findDistance()
-    print "Absolute distances (from origin): ",route.findAbsDistance()
+    print "Absolute distances (from origin): ",absDistances
     print "Relative angles: ",route.findAngle()
-    print "Absolute angles: ",route.findAbsAngle()
+    print "Absolute angles: ",absAngles
 
     #Plots the points on Polar Plot. Note, must use absolute angles and distances
     #TODO: Take in lists from those functions
 
-    lengths = np.array([0, 45, 56, 18, 0]) #looks to be absolute angles
-    angles = np.array([0, 2.828, 7.211, 6.324, 4]) #looks to be absolute distances. Why are these hard coded? And named wrong?
+    angles = np.array(absAngles) 
+    lengths = np.array(absDistances) 
 
     ax = plt.subplot(111, projection='polar')
-    ax.plot(lengths * np.pi / 180, angles, 'r', linewidth=3)
+    ax.plot(angles * np.pi / 180, lengths, 'r', linewidth=3)
     ax.grid(True)
     ax.set_title("Simulating vehicle movement", va='bottom')
     plt.show()
