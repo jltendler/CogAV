@@ -31,7 +31,7 @@ def gen_random_waypoints_onPath():
 	i = 0
 	while not ((curLat == latPath[len(latPath) - 1]) and (curLon == lonPath[len(lonPath) - 1])): #Not at the end
 		if ((curLat == latPath[i]) and (curLon == lonPath[i])): #At point in path
-			print "Hit the mother fucking point"
+			print "Hit point in path"
 			i += 1
 			increment = decimal.Decimal(.000001)
 			error = decimal.Decimal(random.randrange(10))/1000000 
