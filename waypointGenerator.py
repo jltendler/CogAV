@@ -38,33 +38,37 @@ def gen_random_waypoints_onPath():
 			while latPath[i] - curLat > 0.0:
 				curLat +=increment
 				randLat = curLat + error #add random float to current position to account for GPS error
-				coordinate_list.append((randLat, curLon))
-				print (curLat, curLon)
+				coordString = str((randLat, curLon))
+				coordString.split("'")
+				coordinate_list.append((str((randLat, curLon))))
 
 			while latPath[i] - curLat < 0.0:
 				curLat -= increment
 				randLat = curLat + error #add random float to current position to account for GPS error
-				coordinate_list.append((randLat, curLon))
-				print (curLat, curLon)
-
+				coordinate_list.append((str((randLat, curLon))))
+				
 			while lonPath[i] - curLon > 0.0:
 				curLon += increment
 				randLon = curLon + error #add random float to current position to account for GPS error
-				coordinate_list.append((curLat, randLon))
-				print (curLat, curLon)
-
+				coordinate_list.append((str((curLat, randLon))))
+				
 			while lonPath[i] - curLon < 0.0:
 				curLon -= increment
 				randLon = curLon + error #add random float to current position to account for GPS error
-				coordinate_list.append((curLat, randLon))
-				print (curLat, curLon)
+				coordinate_list.append((str((curLat, randLon))))
 
 	return coordinate_list
 
 def main():
 	c = gen_random_waypoints_onPath()
+	final_list = []
+	for x in c:
+		lat = x[10:19] # Hard coded, could make more abstract
+		lon = x[33:43] # Hard coded, could make more abstract
+		final_list.append((lat, lon))
+
 	coordinate_file = open("coordinates.txt", 'w')
-	for i in range(len(c)):
-		coordinate_file.write(str(c[i]) + '\n')
+	for i in range(len(final_list)):
+		coordinate_file.write(str(final_list[i]) + '\n')
 	coordinate_file.close()
 main()
