@@ -15,7 +15,17 @@ class routeCalc:
         self.waypointCount += 1
         if self.waypointCount == 4:
             print "PASS - All waypoints reached"
+
             
+
+    # Method to be called in move function to read in coordinate from coordinates.txt
+    # Used to simulate live GPS data stream
+    def read_Coordinate(self, lineNumber):
+        fp = open("coordinates.txt")
+        lines = fp.readlines()
+        return lines[lineNumber] # Index starts at 0
+
+        
     """
     MOVE FUNCTION
     def move(self, angle, distance):
@@ -101,6 +111,7 @@ class routeCalc:
         return ((self.curX == self.pathX[i]) and (self.curY == self.pathY[i]))
 
 def main():
+    route = routeCalc(0,0)
     i = 0
     xRoute = []
     yRoute = []
