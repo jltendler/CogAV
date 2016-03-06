@@ -2,7 +2,6 @@
 
 from Adafruit_PWM_Servo_Driver import PWM
 import time
-import signal
 import sys
 # ===========================================================================
 # Example Code
@@ -81,9 +80,14 @@ try:
     pwm.setPWM(1,0,servoCenter)
     time.sleep(1)
 
-    #print "takeoff"
-    #pwm.setPWM(1,0,servoCenter+204) #579 is actual max speed.
-    #time.sleep(5)
+    print "takeoff"
+    pwm.setPWM(1,0,servoCenter+204) #579 is actual max speed.
+    time.sleep(5)
+
+    print "still 3"
+    pwm.setPWM(1,0,servoCenter)
+    time.sleep(2)
+
 except KeyboardInterrupt:
     print("Interrupted by user.")
     pwm.setPWM(1,0,servoCenter)
