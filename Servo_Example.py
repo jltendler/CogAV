@@ -2,7 +2,8 @@
 
 from Adafruit_PWM_Servo_Driver import PWM
 import time
-
+import signal
+import sys
 # ===========================================================================
 # Example Code
 # ===========================================================================
@@ -14,6 +15,7 @@ pwm = PWM(0x40)
 
 servoMin = 150  # Min pulse length out of 4096
 servoMax = 600  # Max pulse length out of 4096
+servoCenter=375
 
 def setServoPulse(channel, pulse):
   pulseLength = 1000000                   # 1,000,000 us per second
@@ -26,10 +28,64 @@ def setServoPulse(channel, pulse):
   pwm.setPWM(channel, 0, pulse)
 
 pwm.setPWMFreq(60)                        # Set frequency to 60 Hz
-while (True):
-  # Change speed of continuous servo on channel O
-  pwm.setPWM(0, 0, servoMin)
-  time.sleep(1)
-  pwm.setPWM(0, 0, servoMax)
-  time.sleep(1)
 
+
+
+pwm.setPWM(1,0,servoCenter)
+print "Initialize? (y/n)"
+if sys.stdin.read(1) == "y":
+  print "Running Initialization"
+  pwm.setPWM(1, 0, servoMax)
+  time.sleep(.1)
+  pwm.setPWM(1, 0, servoMin)
+  time.sleep(.1)
+  pwm.setPWM(1, 0, servoCenter)
+  time.sleep(.5)
+  
+turn=150
+
+def turnRight():
+  print "Turning Right"
+  pwm.setPWM(0,0,servoMin)
+
+def turnLeft():
+  print "Turning Left"
+  pwm.setPWM(0,0,servoMax)
+
+def turnForward():
+  print "Turning Straight"
+  pwm.setPWM(0,0,servoCenter)
+try:
+  while (True):
+    print "Forward"
+    turnLeft()
+    pwm.setPWM(1,0,servoCenter+25)
+    time.sleep(1)
+  
+    print "still"
+    turnForward()
+    pwm.setPWM(1,0,servoCenter)
+    time.sleep(1)
+
+    print "backwards"
+    turnRight()
+    pwm.setPWM(1,0,servoCenter-20)
+    time.sleep(.1)
+    pwm.setPWM(1,0,servoCenter)
+    time.sleep(.1)
+    pwm.setPWM(1,0,servoCenter-20)
+    time.sleep(1)
+    
+    print "still 2"
+    turnForward()
+    pwm.setPWM(1,0,servoCenter)
+    time.sleep(1)
+
+    #print "takeoff"
+    #pwm.setPWM(1,0,servoCenter+204) #579 is actual max speed.
+    #time.sleep(5)
+except KeyboardInterrupt:
+    print("Interrupted by user.")
+    pwm.setPWM(1,0,servoCenter)
+    pwm.setPWM(0,0,servoCenter)
+    sys.exit(0)
