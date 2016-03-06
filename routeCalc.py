@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from operator import *
 import math
+import decimal
 
 class routeCalc:
     def __init__(self, curX, curY):
@@ -23,7 +24,7 @@ class routeCalc:
     def read_Coordinate(self, lineNumber):
         fp = open("coordinates.txt")
         lines = fp.readlines()
-        return lines[lineNumber] # Index starts at 0
+        return decimal.Decimal(lines[lineNumber]) # Index starts at 0
 
         
     """
