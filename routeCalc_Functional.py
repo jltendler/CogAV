@@ -2,15 +2,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from operator import *
 import math
-from Adafruit_PWM_Servo_Driver import PWM
+#from Adafruit_PWM_Servo_Driver import PWM
 import time
 import random
 import decimal
+#import Servo_Example.py
+#import GPSreader.py
 
 class routeCalc:
     def __init__(self, curX, curY):
         self.curX = curX #gpsd.fix.latitude
-        self.curY = curY
+        self.curY = curY #gpsd.fix.longitude
         
 	waypointCounter = 0 
 	threshold = decimal.Decimal(0.000001)
@@ -32,13 +34,12 @@ class routeCalc:
     def read_Coordinate(self, lineNumber):
         fp = open("coordinates.txt")
         lines = fp.readlines()
-        return lines[lineNumber] # Index starts at 0
-
-            
+        return decimal.Decimal(lines[lineNumber]) # Index starts at 0
+          
     def calcTurn(self):
 		
-		angle = findCurrAngle()
-		heading = gpsd.fix.heading
+		angle = findAngle() #findCurrAngle()
+		heading = findAngle() #gpsd.fix.heading
 		diff = angle - heading #positive-turn left negative-turn right
 		
 		valuePWM = -2*diff + 375
@@ -51,8 +52,8 @@ class routeCalc:
 		return valuePWM #150-FullLeft 375-Straight 600-FullRight
 		
     def calcSpeed(self):
-		angle = findCurrAngle()
-		heading = gpsd.fix.heading
+		angle = findAngle() #findCurrAngle()
+		heading = findAngle() #gpsd.fix.heading
 		
 		diff = angle - heading
 		
@@ -64,14 +65,14 @@ class routeCalc:
 		return speedPWM		
 		  
     def move(self):
-		angle = findCurrAngle()
-		heading = gpsd.fix.heading
+		angle = findAngle() #findCurrAngle()
+		heading = findAngle() #gpsd.fix.heading
 		
-		while heading != angle: #add threshold
-			valuePWM = calcTurn()
-			speedPWM = calcSpeed()
-			pwm.setPWM(0,0,valuePWM)
-			pwm.setPWM(0,1,speedPWM)
+		#while abs(angle - heading) > 1:
+		valuePWM = calcTurn()
+		speedPWM = calcSpeed()
+		pwm.setPWM(0,0,valuePWM)
+		pwm.setPWM(0,1,speedPWM)
 			
     def findWaypoint(self):		
 		distance = findCurrDistance()		
@@ -92,7 +93,6 @@ class routeCalc:
 		return np.degrees(x)
 
     def findAngle(self):
-		#Needs to compare pathX/pathY to curX/curY
         #Calculating the arctan of path
         arctanList = []
         for i in range(len(self.pathX)):
@@ -197,6 +197,7 @@ def main():
     ax.grid(True)
     ax.set_title("Simulating vehicle movement", va='bottom')
     plt.show()
+    
 
 
 
