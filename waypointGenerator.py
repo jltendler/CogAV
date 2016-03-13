@@ -65,8 +65,8 @@ def main():
 	for x in c:
 		lat = x[10:19] # Hard coded, could make more abstract
 		lon = x[33:43] # Hard coded, could make more abstract
-		final_list.append((lat, lon))
-
+		#final_list.append((lat, lon))
+		final_list.append(lat +","+lon)
 	coordinate_file = open("coordinates.txt", 'w')
 	for i in range(len(final_list)):
 		coordinate_file.write(str(final_list[i]) + '\n')

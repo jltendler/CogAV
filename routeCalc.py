@@ -34,41 +34,16 @@ class routeCalc:
     def read_Coordinate(self, lineNumber):
         fp = open("coordinates.txt")
         lines = fp.readlines()
-        return decimal.Decimal(lines[lineNumber]) # Index starts at 0
+        print "--------****------"
+        temp= tuple(map(decimal.Decimal, lines[lineNumber].split(',')))
+        print temp
+        print temp[0]
+        print "----"
+        return temp # Index starts at 0
 
-        
-    """
-    MOVE FUNCTION
-    def move(self, angle, distance):
-		if heading != angle:
-			while heading > 0:
-				set PWM(0,0,[375 to 600])
-				this turns right
-			while heading < 0:
-				set PWM(0,0,[150 to 375])
-				this turns left
-		else:
-			set PWM(0,0,375) go straight
-	"""
 		
     increment = decimal.Decimal(0.0001) #Increment distance
     threshold = decimal.Decimal(0.0001) #threshold to check if within certain distance
-
-    def moveNorth(self):
-        print "moving north"
-        self.curY += self.increment
-
-    def moveSouth(self):
-        print "moving south"
-        self.curY -= self.increment
-
-    def moveEast(self):
-        print "moving east"
-        self.curX += self.increment
-
-    def moveWest(self):
-        print "moving west"
-        self.curX -= self.increment
 
     def findAngle(self):
 		#Needs to compare pathX/pathY to curX/curY
@@ -92,6 +67,28 @@ class routeCalc:
 
         arctanList = np.degrees(arctanList)
         return arctanList
+
+    def findWayPoint(self):
+        distance = self.findCurrDistance() # Bad!! call to findCurrAngle()
+        if distance < threshold:
+            waypointCounter += 1
+        return waypointCounter
+
+    def findCurrAngle(self):
+        waypointCounter = self.findWayPoint() 
+        x1 = self.pathX[waypointCounter] - self.curX
+        y1 = self.pathY[waypointCounter] - self.curY
+        a = np.arctan2(float(y1), float(x1))
+        if a < 0:
+            a = 2*np.pi + a
+        return np.degrees(a)
+
+    def findCurrDistance(self):
+        waypointCounter = self.findWayPoint() # Bad!! call to findWayPoint()
+        x1 = self.pathX[waypointCounter] - self.curX
+        y1 = self.pathY[waypointCounter] - self.curY
+        dist = np.sqrt(abs(np.square(x1) + np.square(y1))) #may have to cast as float here
+        return dist
 
     def findAbsAngle(self):
         #Calculating the absolute arctans of path
@@ -120,6 +117,42 @@ class routeCalc:
                 absDistList.append(np.sqrt(abs(np.square(self.pathX[i]) + np.square(self.pathY[i]))))
         return absDistList
         
+    def calcTurn(self):
+        angle = self.findCurrAngle()
+        heading = 29 #will have to implement real heading later
+        diff = angle - heading
+        valuePWM = -2*diff + 375
+        if valuePWM < 150:
+            valuePWM = 150 #logical minmum for turning
+        if valuePWM > 600:
+            valuePWM = 600 #logical maximum for turning
+        #150-fullLeft
+        #375-straight
+        #600-fullRight
+        return valuePWM
+
+    def calcSpeed(self):
+        angle = self.findCurrAngle()
+        heading = 79
+        diff = angle - heading
+        speedPWM = 600 - 2*abs(diff)
+        if speedPWM <= 375:
+            speedPWM = 400
+        return speedPWM
+
+    def updateLocation(self):
+        i = 0
+        (self.cuX, self.curY) = self.read_Coordinate(i)
+        i += 1
+
+    def move(self):
+        self.updateLocation()
+        angle = self.findCurrAngle()
+        heading = 35
+        valuePWM = self.calcTurn()
+        speedPWM = self.calcSpeed()
+        pwm.setPWM(0,0,valuePWM)
+        pwm.setPWM(0,1,speedPWM) 
         
     def checkIfFinished(self):
         #Checks if current coordinates are within threshold of the specified end of path
@@ -143,38 +176,8 @@ def main():
     yRoute = []
     route.waypointCount = 0
 
-    while not (route.checkIfFinished()):	#Not done
-        if (route.checkIfAtPair(i)):  #At current goal
-            i += 1
-            while route.pathX[i] - route.curX > 0.0:
-                print (route.curX, route.curY)
-                route.moveEast()
-                xRoute.append(route.curX)
-                yRoute.append(route.curY)
-
-            while route.pathX[i] - route.curX < 0.0:
-                print (route.curX, route.curY)
-                route.moveWest()
-                xRoute.append(route.curX)
-                yRoute.append(route.curY)
-
-            while route.pathY[i] - route.curY > 0.0:
-                print (route.curX, route.curY)
-                route.moveNorth()
-                xRoute.append(route.curX)
-                yRoute.append(route.curY)
-
-            while route.pathY[i] - route.curY < 0.0:
-                print (route.curX, route.curY)
-                route.moveSouth()
-                xRoute.append(route.curX)
-                yRoute.append(route.curY)
-
-            if route.curX is route.pathX[i] and route.curY is route.pathY[i]:
-
-                print "reached destination point"
-                print (route.curX, route.curY)
-                route.testWaypoint()
+    while not (route.checkIfFinished()): #Not Done
+        route.move()
 
     #Calculates and prints relative distances between points
     xSquaredList = [i ** 2 for i in route.pathX]
