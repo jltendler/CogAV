@@ -3,12 +3,15 @@ import matplotlib.pyplot as plt
 from operator import *
 import math
 import decimal
+import time
+from Adafruit_PWM_Servo_Driver import PWM
 
 class routeCalc:
     def __init__(self, curX, curY):
+        self.waypointCounter = 0 
         self.curX = decimal.Decimal(curX)
         self.curY = decimal.Decimal(curY)
-
+	
     pathX = np.array([40.071374, 40.071258, 40.070755, 40.070976, 40.071331])
     pathY = np.array([-105.229788, -105.230026, -105.229717, -105.229191, -105.229466])
     pathX=np.array([decimal.Decimal(abc) for abc in pathX])
@@ -69,24 +72,23 @@ class routeCalc:
         return arctanList
 
     def findWayPoint(self):
-        distance = self.findCurrDistance() # Bad!! call to findCurrAngle()
-        if distance < threshold:
-            waypointCounter += 1
-        return waypointCounter
+        if self.checkIfAtPair(self.waypointCounter):
+            self.waypointCounter += 1
+        return self.waypointCounter
 
     def findCurrAngle(self):
-        waypointCounter = self.findWayPoint() 
-        x1 = self.pathX[waypointCounter] - self.curX
-        y1 = self.pathY[waypointCounter] - self.curY
+        self.waypointCounter = self.findWayPoint() 
+        x1 = self.pathX[self.waypointCounter] - self.curX
+        y1 = self.pathY[self.waypointCounter] - self.curY
         a = np.arctan2(float(y1), float(x1))
         if a < 0:
             a = 2*np.pi + a
         return np.degrees(a)
 
     def findCurrDistance(self):
-        waypointCounter = self.findWayPoint() # Bad!! call to findWayPoint()
-        x1 = self.pathX[waypointCounter] - self.curX
-        y1 = self.pathY[waypointCounter] - self.curY
+        self.waypointCounter = self.findWayPoint() # Bad!! call to findWayPoint()
+        x1 = self.pathX[self.waypointCounter] - self.curX
+        y1 = self.pathY[self.waypointCounter] - self.curY
         dist = np.sqrt(abs(np.square(x1) + np.square(y1))) #may have to cast as float here
         return dist
 
@@ -149,9 +151,9 @@ class routeCalc:
         self.updateLocation()
         angle = self.findCurrAngle()
         heading = 35
-        valuePWM = self.calcTurn()
+        turnPWM = self.calcTurn()
         speedPWM = self.calcSpeed()
-        pwm.setPWM(0,0,valuePWM)
+        pwm.setPWM(0,0,turnPWM)
         pwm.setPWM(0,1,speedPWM) 
         
     def checkIfFinished(self):
@@ -174,7 +176,6 @@ def main():
     i = 0
     xRoute = []
     yRoute = []
-    route.waypointCount = 0
 
     while not (route.checkIfFinished()): #Not Done
         route.move()
