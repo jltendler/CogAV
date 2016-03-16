@@ -4,7 +4,7 @@ from operator import *
 import math
 import decimal
 import time
-from Adafruit_PWM_Servo_Driver import PWM
+# from Adafruit_PWM_Servo_Driver import PWM
 
 class routeCalc:
     def __init__(self, curX, curY):
@@ -37,11 +37,7 @@ class routeCalc:
     def read_Coordinate(self, lineNumber):
         fp = open("coordinates.txt")
         lines = fp.readlines()
-        print "--------****------"
         temp= tuple(map(decimal.Decimal, lines[lineNumber].split(',')))
-        print temp
-        print temp[0]
-        print "----"
         return temp # Index starts at 0
 
 		
@@ -123,15 +119,16 @@ class routeCalc:
         angle = self.findCurrAngle()
         heading = 29 #will have to implement real heading later
         diff = angle - heading
-        valuePWM = -2*diff + 375
-        if valuePWM < 150:
-            valuePWM = 150 #logical minmum for turning
-        if valuePWM > 600:
-            valuePWM = 600 #logical maximum for turning
+        turnPWM = -2*diff + 375
+        if turnPWM < 150:
+            turnPWM = 150 #logical minmum for turning
+        if turnPWM > 600:
+            turnPWM = 600 #logical maximum for turning
         #150-fullLeft
         #375-straight
         #600-fullRight
-        return valuePWM
+        print ("setting turn PWM to:", turnPWM)
+        return turnPWM
 
     def calcSpeed(self):
         angle = self.findCurrAngle()
@@ -140,21 +137,26 @@ class routeCalc:
         speedPWM = 600 - 2*abs(diff)
         if speedPWM <= 375:
             speedPWM = 400
+        print ("setting speed PWM to:", speedPWM)
         return speedPWM
 
     def updateLocation(self):
         i = 0
-        (self.cuX, self.curY) = self.read_Coordinate(i)
-        i += 1
+        while i < 2500:
+            (self.cuX, self.curY) = self.read_Coordinate(i)
+            i += 1
 
     def move(self):
-        self.updateLocation()
-        angle = self.findCurrAngle()
-        heading = 35
-        turnPWM = self.calcTurn()
-        speedPWM = self.calcSpeed()
-        pwm.setPWM(0,0,turnPWM)
-        pwm.setPWM(0,1,speedPWM) 
+        if not self.checkIfFinished():
+            self.updateLocation()
+            angle = self.findCurrAngle()
+            heading = 35
+            turnPWM = self.calcTurn()
+            speedPWM = self.calcSpeed()
+            print ("setting turn PWM to:", turnPWM) # Also in calcTurn()
+            print ("setting speed PWM to:", speedPWM) # Also in calcSpeed()
+            # pwm.setPWM(0,0,turnPWM) --> moved this call into calcTurn()
+            # pwm.setPWM(0,1,speedPWM) --> moved this call into calcSpeed()
         
     def checkIfFinished(self):
         #Checks if current coordinates are within threshold of the specified end of path
