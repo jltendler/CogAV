@@ -28,7 +28,7 @@ def setServoPulse(channel, pulse):
 
 pwm.setPWMFreq(60)                        # Set frequency to 60 Hz
 
-
+'''
 
 pwm.setPWM(1,0,servoCenter)
 print "Initialize? (y/n)"
@@ -87,9 +87,11 @@ try:
     print "still 3"
     pwm.setPWM(1,0,servoCenter)
     time.sleep(2)
+    
 
 except KeyboardInterrupt:
     print("Interrupted by user.")
     pwm.setPWM(1,0,servoCenter)
     pwm.setPWM(0,0,servoCenter)
     sys.exit(0)
+'''

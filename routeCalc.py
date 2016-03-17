@@ -1,16 +1,19 @@
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from operator import *
 import math
 import decimal
 import time
-# from Adafruit_PWM_Servo_Driver import PWM
+from Adafruit_PWM_Servo_Driver import PWM
+import sys
+import Servo_Example
 
 class routeCalc:
     def __init__(self, curX, curY):
         self.waypointCounter = 0 
         self.curX = decimal.Decimal(curX)
         self.curY = decimal.Decimal(curY)
+        self.pwm = PWM(0x40)
 	
     pathX = np.array([40.071374, 40.071258, 40.070755, 40.070976, 40.071331])
     pathY = np.array([-105.229788, -105.230026, -105.229717, -105.229191, -105.229466])
@@ -155,8 +158,8 @@ class routeCalc:
             speedPWM = self.calcSpeed()
             print ("setting turn PWM to:", turnPWM) # Also in calcTurn()
             print ("setting speed PWM to:", speedPWM) # Also in calcSpeed()
-            # pwm.setPWM(0,0,turnPWM) --> moved this call into calcTurn()
-            # pwm.setPWM(0,1,speedPWM) --> moved this call into calcSpeed()
+            self.pwm.setPWM(0,0,turnPWM) #--> moved this call into calcTurn()
+            self.pwm.setPWM(0,1,speedPWM) #--> moved this call into calcSpeed()
         
     def checkIfFinished(self):
         #Checks if current coordinates are within threshold of the specified end of path
@@ -181,7 +184,7 @@ def main():
 
     while not (route.checkIfFinished()): #Not Done
         route.move()
-
+'''
     #Calculates and prints relative distances between points
     xSquaredList = [i ** 2 for i in route.pathX]
     ySquaredList = [j ** 2 for j in route.pathY]
@@ -209,6 +212,7 @@ def main():
     ax.grid(True)
     ax.set_title("Simulating vehicle movement", va='bottom')
     plt.show()
+    '''
 
 
 
