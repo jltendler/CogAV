@@ -16,7 +16,7 @@ class routeCalc:
         self.pwm = PWM(0x40)
 	
     pathX = np.array([40.071374, 40.071258, 40.070755, 40.070976, 40.071331])
-    pathY = np.array([-105.229788, -105.230026, -105.229717, -105.229191, -105.229466])
+    pathY = np.array([-105.229788, -105.230026, -105.229717, -105.229191, -105.22946])
     pathX=np.array([decimal.Decimal(abc) for abc in pathX])
     pathY=np.array([decimal.Decimal(abc) for abc in pathY])
     for x in range(len(pathX)):
@@ -45,7 +45,7 @@ class routeCalc:
 
 		
     increment = decimal.Decimal(0.0001) #Increment distance
-    threshold = decimal.Decimal(0.0001) #threshold to check if within certain distance
+    threshold = decimal.Decimal(0.00001) #threshold to check if within certain distance
 
     def findAngle(self):
 		#Needs to compare pathX/pathY to curX/curY
@@ -71,6 +71,9 @@ class routeCalc:
         return arctanList
 
     def findWayPoint(self):
+        if self.checkIfFinished():
+            print ("MISSION FUCKING ACCOMPLISHED BOYS")
+            return self.waypointCounter
         if self.checkIfAtPair(self.waypointCounter):
             self.waypointCounter += 1
         return self.waypointCounter
@@ -81,7 +84,7 @@ class routeCalc:
         y1 = self.pathY[self.waypointCounter] - self.curY
         a = np.arctan2(float(y1), float(x1))
         if a < 0:
-            a = 2*np.pi + a
+            a = 2.0*np.pi + a
         return np.degrees(a)
 
     def findCurrDistance(self):
@@ -120,9 +123,9 @@ class routeCalc:
         
     def calcTurn(self):
         angle = self.findCurrAngle()
-        heading = 29 #will have to implement real heading later
+        heading = 29.0 #will have to implement real heading later
         diff = angle - heading
-        turnPWM = -2*diff + 375
+        turnPWM = -2.0*diff + 375.0
         if turnPWM < 150:
             turnPWM = 150 #logical minmum for turning
         if turnPWM > 600:
@@ -130,7 +133,6 @@ class routeCalc:
         #150-fullLeft
         #375-straight
         #600-fullRight
-        print ("setting turn PWM to:", turnPWM)
         return turnPWM
 
     def calcSpeed(self):
@@ -140,26 +142,32 @@ class routeCalc:
         speedPWM = 600 - 2*abs(diff)
         if speedPWM <= 375:
             speedPWM = 400
-        print ("setting speed PWM to:", speedPWM)
         return speedPWM
 
     def updateLocation(self):
         i = 0
         while i < 2500:
-            (self.cuX, self.curY) = self.read_Coordinate(i)
+            (self.curX, self.curY) = self.read_Coordinate(i)
             i += 1
+            print ("curX:",self.curX," curY:", self.curY)
 
     def move(self):
-        if not self.checkIfFinished():
-            self.updateLocation()
+        i = 0
+        while i < 2543:
+            (self.curX, self.curY) = self.read_Coordinate(i)
             angle = self.findCurrAngle()
             heading = 35
             turnPWM = self.calcTurn()
             speedPWM = self.calcSpeed()
-            print ("setting turn PWM to:", turnPWM) # Also in calcTurn()
-            print ("setting speed PWM to:", speedPWM) # Also in calcSpeed()
-            self.pwm.setPWM(0,0,turnPWM) #--> moved this call into calcTurn()
-            self.pwm.setPWM(0,1,speedPWM) #--> moved this call into calcSpeed()
+            print (i)
+            print ("curX:", self.curX)
+            print ("curY:", self.curY)
+            print ("angle is equal to:", angle) 
+            print ("setting turn PWM to:", int(turnPWM)) # Also in calcTurn()
+            print ("setting speed PWM to:", int(speedPWM)) # Also in calcSpeed()
+            self.pwm.setPWM(0,0,int(turnPWM)) #--> moved this call into calcTurn()
+            self.pwm.setPWM(0,1,int(speedPWM)) #--> moved this call into calcSpeed()
+            i += 1
         
     def checkIfFinished(self):
         #Checks if current coordinates are within threshold of the specified end of path
