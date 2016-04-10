@@ -6,7 +6,58 @@ import decimal
 import time
 from Adafruit_PWM_Servo_Driver import PWM
 import sys
-import Servo_Example
+#import Servo_Example
+import os
+from gps import *
+import threading
+#from Adafruit_BNO055 import BNO055
+
+
+gpsd = None
+#Initialize serial port for Compass
+#bno = BNO055.BNO055(serial_port='/dev/ttyAMA0', rst=18)
+
+
+class GpsPoller(threading.Thread):
+  def __init__(self):
+    threading.Thread.__init__(self)
+    global gpsd #bring it in scope
+    gpsd = gps(mode=WATCH_ENABLE) #starting the stream of info
+    self.current_value = None
+    self.running = True #setting the thread running to true
+
+  def run(self):
+    global gpsd
+    while gpsp.running:
+      gpsd.next() #this will continue to loop and grab EACH set of gpsd info to clear the buffer
+
+"""
+class compass(threading.Thread):
+  def __init__(self):
+    threading.Thread.__init__(self)
+    global bno #bring it in scope
+    # Initialize the BNO055 and stop if something went wrong.
+    if not bno.begin():
+      raise RuntimeError('Failed to initialize BNO055! Is the sensor connected?')
+    # Print system status and self test result.
+    status, self_test, error = bno.get_system_status()
+    print('System status: {0}'.format(status))
+    print('Self test result (0x0F is normal): 0x{0:02X}'.format(self_test))
+    # Print out an error if system status is in error mode.
+    if status == 0x01:
+        print('System error: {0}'.format(error))
+        print('See datasheet section 4.3.59 for the meaning.')
+
+    print('Reading BNO055 data, press Ctrl-C to quit...')
+    while True:
+        # Read the Euler angles for heading, roll, pitch (all in degrees).
+        heading, roll, pitch = bno.read_euler()
+        # Read the calibration status, 0=uncalibrated and 3=fully calibrated.
+        sys, gyro, accel, mag = bno.get_calibration_status()
+        # Print everything out.
+        #print('Heading={0:0.2F} Roll={1:0.2F} Pitch={2:0.2F}\tSys_cal={3} Gyro_cal={4} Accel_cal={5} Mag_cal={6}'.format(
+        #      heading, roll, pitch, sys, gyro, accel, mag))
+""" 
 
 class routeCalc:
     def __init__(self, curX, curY):
@@ -14,9 +65,18 @@ class routeCalc:
         self.curX = decimal.Decimal(curX)
         self.curY = decimal.Decimal(curY)
         self.pwm = PWM(0x40)
+        self.servoMin = 150  # Min pulse length out of 4096
+        self.servoMax = 600  # Max pulse length out of 4096
+        self.servoCenter=375
+        self.pwm.setPWMFreq(60)
+        self.lastHeading=0
+        
+        
+        
 	
-    pathX = np.array([40.071374, 40.071258, 40.070755, 40.070976, 40.071331])
-    pathY = np.array([-105.229788, -105.230026, -105.229717, -105.229191, -105.22946])
+    pathX = np.array([40.00720, 40.00717, 40.00726, 40.00729, 40.00724, 40.00715, 40.00711, 40.00715])
+    pathY = np.array([-105.26394, -105.26405, -105.26408, -105.26423, -105.26432, -105.26423, -105.26415, -105.26405])
+    
     pathX=np.array([decimal.Decimal(abc) for abc in pathX])
     pathY=np.array([decimal.Decimal(abc) for abc in pathY])
     for x in range(len(pathX)):
@@ -45,7 +105,7 @@ class routeCalc:
 
 		
     increment = decimal.Decimal(0.0001) #Increment distance
-    threshold = decimal.Decimal(0.00001) #threshold to check if within certain distance
+    threshold = decimal.Decimal(0.00003) #threshold to check if within certain distance
 
     def findAngle(self):
 		#Needs to compare pathX/pathY to curX/curY
@@ -55,7 +115,7 @@ class routeCalc:
             if i is 0:
                 y = np.arctan2(float(self.pathY[i]), float(self.pathX[i]))
                 if y < 0:
-					arctanList.append((2*np.pi)+y)
+                    arctanList.append((2*np.pi)+y)
                 else:
                     arctanList.append(y)
             else:
@@ -85,6 +145,7 @@ class routeCalc:
         a = np.arctan2(float(y1), float(x1))
         if a < 0:
             a = 2.0*np.pi + a
+        print("!!!WAYPOINT!!! :", self.waypointCounter)
         return np.degrees(a)
 
     def findCurrDistance(self):
@@ -120,12 +181,20 @@ class routeCalc:
         for i in range(len(self.pathX)):
                 absDistList.append(np.sqrt(abs(np.square(self.pathX[i]) + np.square(self.pathY[i]))))
         return absDistList
+
+    def pullHeading(self):
+        #print ("heading = ", c_pass.heading )
+        #return c_pass.heading
+        if math.isnan(gpsd.fix.track):
+          print "No Fix"
+          gpsd.fix.track = 0
+        return gpsd.fix.track
         
     def calcTurn(self):
         angle = self.findCurrAngle()
-        heading = 29.0 #will have to implement real heading later
-        diff = angle - heading
-        turnPWM = -2.0*diff + 375.0
+        heading = self.pullHeading() #will have to implement real heading later
+        diff = heading - angle
+        turnPWM = -1.0*diff + 375.0
         if turnPWM < 150:
             turnPWM = 150 #logical minmum for turning
         if turnPWM > 600:
@@ -137,11 +206,15 @@ class routeCalc:
 
     def calcSpeed(self):
         angle = self.findCurrAngle()
-        heading = 79
-        diff = angle - heading
-        speedPWM = 600 - 2*abs(diff)
+        calibration = 5.0
+        heading = self.pullHeading()
+        diff = heading - angle
+        speedPWM = 600 - calibration*abs(diff)
         if speedPWM <= 375:
             speedPWM = 400
+        if speedPWM > 575:
+            speedPWM = 574
+        print("!!!HEADING!!! :", heading)
         return speedPWM
 
     def updateLocation(self):
@@ -151,23 +224,24 @@ class routeCalc:
             i += 1
             print ("curX:",self.curX," curY:", self.curY)
 
+    #def pullLong(self):
+        
+
     def move(self):
-        i = 0
-        while i < 2543:
-            (self.curX, self.curY) = self.read_Coordinate(i)
-            angle = self.findCurrAngle()
-            heading = 35
-            turnPWM = self.calcTurn()
-            speedPWM = self.calcSpeed()
-            print (i)
-            print ("curX:", self.curX)
-            print ("curY:", self.curY)
-            print ("angle is equal to:", angle) 
-            print ("setting turn PWM to:", int(turnPWM)) # Also in calcTurn()
-            print ("setting speed PWM to:", int(speedPWM)) # Also in calcSpeed()
-            self.pwm.setPWM(0,0,int(turnPWM)) #--> moved this call into calcTurn()
-            self.pwm.setPWM(0,1,int(speedPWM)) #--> moved this call into calcSpeed()
-            i += 1
+
+        self.curX = decimal.Decimal(gpsd.fix.latitude)
+        self.curY = decimal.Decimal(gpsd.fix.longitude)
+        angle = self.findCurrAngle()
+        turnPWM = self.calcTurn()
+        speedPWM = self.calcSpeed()
+        print ("curX:", self.curX)
+        print ("curY:", self.curY)
+        print ("angle is equal to:", angle) 
+        print ("setting turn PWM to:", int(turnPWM)) # Also in calcTurn()
+        print ("setting speed PWM to:", int(speedPWM)) # Also in calcSpeed()
+        self.pwm.setPWM(0,0,int(turnPWM)) #--> moved this call into calcTurn()
+        self.pwm.setPWM(1,0,int(speedPWM)) #--> moved this call into calcSpeed()
+        time.sleep(.2)
         
     def checkIfFinished(self):
         #Checks if current coordinates are within threshold of the specified end of path
@@ -183,15 +257,45 @@ class routeCalc:
             return True
         else:
             return False
-
+    def initializeCar(self):
+        print "Running Initialization"
+        self.pwm.setPWM(1, 0, self.servoMax)
+        time.sleep(.1)
+        self.pwm.setPWM(1, 0, self.servoMin)
+        time.sleep(.1)
+        self.pwm.setPWM(1, 0, self.servoCenter)
+        time.sleep(.5)
+    def testTurn(self):
+        print("hullo")
+        self.pwm.setPWM(0,0,self.servoMax)
+        time.sleep(.1)
+        self.pwm.setPWM(0,0,self.servoMin)
+        time.sleep(.1)
+        self.pwm.setPWM(0,0,500)
+        time.sleep(.1)
+        self.pwm.setPWM(0,0,220)
+    def stopCar(self):
+        print("Interrupted by user.")
+        self.pwm.setPWM(1,0,375)
+        self.pwm.setPWM(0,0,375)
+        sys.exit(0)
 def main():
-    route = routeCalc(decimal.Decimal(40.071374),decimal.Decimal(-105.229788))
+    route = routeCalc(decimal.Decimal(40.00720),decimal.Decimal(-105.26394))
     i = 0
     xRoute = []
     yRoute = []
-
+    route.initializeCar()
+    
+    
     while not (route.checkIfFinished()): #Not Done
-        route.move()
+        try:
+            
+            route.move()
+        except KeyboardInterrupt:
+            print("Interrupted by user.")
+            route.stopCar()
+    route.stopCar()
+    
 '''
     #Calculates and prints relative distances between points
     xSquaredList = [i ** 2 for i in route.pathX]
@@ -221,8 +325,10 @@ def main():
     ax.set_title("Simulating vehicle movement", va='bottom')
     plt.show()
     '''
-
-
+if __name__ == '__main__':
+    gpsp = GpsPoller()
+    gpsp.start()
+    #c_pass = compass()
 
 main()
 
