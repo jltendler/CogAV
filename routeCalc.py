@@ -145,10 +145,11 @@ class routeCalc:
         x1 = self.pathX[self.waypointCounter] - self.curX
         y1 = self.pathY[self.waypointCounter] - self.curY
         a = np.arctan2(float(y1), float(x1))
-        if a < 0:
-            a = 2.0*np.pi + a
+        #if a < 0:
+        #a = 2.0*np.pi + a
         print("!!!WAYPOINT!!! :", self.waypointCounter)
-        return np.degrees(a)
+        compass_angle = -np.degrees(a) + 90.0 #calibrates to orientation of comapass from polar
+        return compass_angle
 
     def findCurrDistance(self):
         self.waypointCounter = self.findWayPoint() # Bad!! call to findWayPoint()
