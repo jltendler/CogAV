@@ -10,12 +10,12 @@ import sys
 import os
 from gps import *
 import threading
-#from Adafruit_BNO055 import BNO055
+from Adafruit_BNO055 import BNO055
 
 
 gpsd = None
 #Initialize serial port for Compass
-#bno = BNO055.BNO055(serial_port='/dev/ttyAMA0', rst=18)
+bno = BNO055.BNO055(serial_port='/dev/ttyUSB0', rst=18)
 
 
 class GpsPoller(threading.Thread):
@@ -31,11 +31,12 @@ class GpsPoller(threading.Thread):
     while gpsp.running:
       gpsd.next() #this will continue to loop and grab EACH set of gpsd info to clear the buffer
 
-"""
+
 class compass(threading.Thread):
   def __init__(self):
     threading.Thread.__init__(self)
-    global bno #bring it in scope
+    #Initialize serial port for Compass
+    self.bno = BNO055.BNO055(serial_port='/dev/ttyUSB0', rst=18)
     # Initialize the BNO055 and stop if something went wrong.
     if not bno.begin():
       raise RuntimeError('Failed to initialize BNO055! Is the sensor connected?')
@@ -49,15 +50,16 @@ class compass(threading.Thread):
         print('See datasheet section 4.3.59 for the meaning.')
 
     print('Reading BNO055 data, press Ctrl-C to quit...')
-    while True:
-        # Read the Euler angles for heading, roll, pitch (all in degrees).
-        heading, roll, pitch = bno.read_euler()
-        # Read the calibration status, 0=uncalibrated and 3=fully calibrated.
-        sys, gyro, accel, mag = bno.get_calibration_status()
-        # Print everything out.
-        #print('Heading={0:0.2F} Roll={1:0.2F} Pitch={2:0.2F}\tSys_cal={3} Gyro_cal={4} Accel_cal={5} Mag_cal={6}'.format(
-        #      heading, roll, pitch, sys, gyro, accel, mag))
-""" 
+    # Read the Euler angles for heading, roll, pitch (all in degrees).
+
+  def run(self):
+    self.heading, pitch, roll = bno.read_euler()
+    # Read the calibration status, 0=uncalibrated and 3=fully calibrated.
+    sys, gyro, accel, mag = bno.get_calibration_status()
+    # Print everything out.
+    #print('Heading={0:0.2F} Roll={1:0.2F} Pitch={2:0.2F}\tSys_cal={3} Gyro_cal={4} Accel_cal={5} Mag_cal={6}'.format(
+    #      self.heading, roll, pitch, sys, gyro, accel, mag))
+ 
 
 class routeCalc:
     def __init__(self, curX, curY):
@@ -74,8 +76,8 @@ class routeCalc:
         
         
 	
-    pathX = np.array([40.00720, 40.00717, 40.00726, 40.00729, 40.00724, 40.00715, 40.00711, 40.00715])
-    pathY = np.array([-105.26394, -105.26405, -105.26408, -105.26423, -105.26432, -105.26423, -105.26415, -105.26405])
+    pathX = np.array([40.00602, 40.00591, 40.00585, 40.00595])
+    pathY = np.array([-105.26239, -105.26247, -105.26231, -105.26224])
     
     pathX=np.array([decimal.Decimal(abc) for abc in pathX])
     pathY=np.array([decimal.Decimal(abc) for abc in pathY])
@@ -183,12 +185,13 @@ class routeCalc:
         return absDistList
 
     def pullHeading(self):
-        #print ("heading = ", c_pass.heading )
-        #return c_pass.heading
-        if math.isnan(gpsd.fix.track):
-          print "No Fix"
-          gpsd.fix.track = 0
-        return gpsd.fix.track
+        c_pass.run() #Update the heading angle every time this method is called
+        print ("heading = ", c_pass.heading )
+        return c_pass.heading
+        #if math.isnan(gpsd.fix.track):
+        #  print "No Fix"
+        #  gpsd.fix.track = 0
+        #return gpsd.fix.track
         
     def calcTurn(self):
         angle = self.findCurrAngle()
@@ -209,12 +212,11 @@ class routeCalc:
         calibration = 5.0
         heading = self.pullHeading()
         diff = heading - angle
-        speedPWM = 600 - calibration*abs(diff)
+        speedPWM = 450 - calibration*abs(diff)
         if speedPWM <= 375:
             speedPWM = 400
         if speedPWM > 575:
             speedPWM = 574
-        print("!!!HEADING!!! :", heading)
         return speedPWM
 
     def updateLocation(self):
@@ -224,13 +226,23 @@ class routeCalc:
             i += 1
             print ("curX:",self.curX," curY:", self.curY)
 
-    #def pullLong(self):
+    def pullLong(self):
+        if math.isnan(gpsd.fix.longitude):
+          print "No Fix"
+          gpsd.fix.longitude = 0
+        return gpsd.fix.longitude
+
+    def pullLat(self):
+        if math.isnan(gpsd.fix.latitude):
+          print "No Fix"
+          gpsd.fix.latitude = 0
+        return gpsd.fix.latitude
         
 
     def move(self):
 
-        self.curX = decimal.Decimal(gpsd.fix.latitude)
-        self.curY = decimal.Decimal(gpsd.fix.longitude)
+        self.curX = decimal.Decimal(self.pullLat())
+        self.curY = decimal.Decimal(self.pullLong())
         angle = self.findCurrAngle()
         turnPWM = self.calcTurn()
         speedPWM = self.calcSpeed()
@@ -241,7 +253,7 @@ class routeCalc:
         print ("setting speed PWM to:", int(speedPWM)) # Also in calcSpeed()
         self.pwm.setPWM(0,0,int(turnPWM)) #--> moved this call into calcTurn()
         self.pwm.setPWM(1,0,int(speedPWM)) #--> moved this call into calcSpeed()
-        time.sleep(.2)
+        time.sleep(.1)
         
     def checkIfFinished(self):
         #Checks if current coordinates are within threshold of the specified end of path
@@ -328,7 +340,7 @@ def main():
 if __name__ == '__main__':
     gpsp = GpsPoller()
     gpsp.start()
-    #c_pass = compass()
+    c_pass = compass()
 
 main()
 
