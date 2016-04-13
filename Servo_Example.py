@@ -28,11 +28,10 @@ def setServoPulse(channel, pulse):
 
 pwm.setPWMFreq(60)                        # Set frequency to 60 Hz
 
-'''
+
 
 pwm.setPWM(1,0,servoCenter)
-print "Initialize? (y/n)"
-if sys.stdin.read(1) == "y":
+if (True):
   print "Running Initialization"
   pwm.setPWM(1, 0, servoMax)
   time.sleep(.1)
@@ -42,7 +41,6 @@ if sys.stdin.read(1) == "y":
   time.sleep(.5)
   
 turn=150
-
 def turnRight():
   print "Turning Right"
   pwm.setPWM(0,0,servoMin)
@@ -54,8 +52,27 @@ def turnLeft():
 def turnForward():
   print "Turning Straight"
   pwm.setPWM(0,0,servoCenter)
-try:
-  while (True):
+
+def whatever(potato):
+  pwm.setPWM(0,0,potato)
+  print(potato)
+
+i=505
+#290 is most right turned.
+#505 is most left turned
+
+while (True):
+  whatever(290)
+  time.sleep(1)
+  whatever(505)
+  time.sleep(1)
+  whatever(100)
+  time.sleep(1)
+  whatever(600)
+  time.sleep(1)
+  i-=5
+
+'''
     print "Forward"
     turnLeft()
     pwm.setPWM(1,0,servoCenter+25)
@@ -87,7 +104,7 @@ try:
     print "still 3"
     pwm.setPWM(1,0,servoCenter)
     time.sleep(2)
-    
+  
 
 except KeyboardInterrupt:
     print("Interrupted by user.")
