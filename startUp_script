@@ -1,0 +1,13 @@
+#!/bin/bash
+# Start up script to initialize gpsd
+
+echo "Initializing gpsd..."
+
+# kill all gpsd processes that may be running in the background
+sudo killall gpsd
+
+# Start gpsd and direct it to use HW UART
+sudo gpsd /dev/ttyAMA0 -F /var/run/gpsd.sock
+
+# Now run our program routeCalc.py
+sudo python routeCalc.py
