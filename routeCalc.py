@@ -1,17 +1,14 @@
 import numpy as np
-#import matplotlib.pyplot as plt
 from operator import *
 import math
 import decimal
 import time
 from Adafruit_PWM_Servo_Driver import PWM
 import sys
-#import Servo_Example
 import os
 from gps import *
 import threading
 from Adafruit_BNO055 import BNO055
-
 
 gpsd = None
 #Initialize serial port for Compass
@@ -56,10 +53,6 @@ class compass(threading.Thread):
     self.heading, pitch, roll = bno.read_euler()
     # Read the calibration status, 0=uncalibrated and 3=fully calibrated.
     sys, gyro, accel, mag = bno.get_calibration_status()
-    # Print everything out.
-    #print('Heading={0:0.2F} Roll={1:0.2F} Pitch={2:0.2F}\tSys_cal={3} Gyro_cal={4} Accel_cal={5} Mag_cal={6}'.format(
-    #      self.heading, roll, pitch, sys, gyro, accel, mag))
- 
 
 class routeCalc:
     def __init__(self, curX, curY):
@@ -76,8 +69,8 @@ class routeCalc:
         
         
 	
-    pathY = np.array([40.00582, 40.00603, 40.00604, 40.00573])
-    pathX = np.array([-105.2618, -105.26185, -105.26165, -105.26163])
+    pathY = np.array([40.006060, 40.005865, 40.005609, 40.005577])
+    pathX = np.array([-105.262608, -105.262627, -105.262399, -105.262642])
     
     pathX=np.array([decimal.Decimal(abc) for abc in pathX])
     pathY=np.array([decimal.Decimal(abc) for abc in pathY])
@@ -145,34 +138,28 @@ class routeCalc:
         x1 = self.pathX[self.waypointCounter] - self.curX
         y1 = self.pathY[self.waypointCounter] - self.curY
         a = np.arctan2(float(y1), float(x1))
-        #if a < 0:
-        #  a = 2.0*np.pi + a
+        a = np.degrees(a)
         if a <= 90:
           compass_angle = 90 - a
+          print "arctan < 90"
         else:
           compass_angle = 360 - (a - 90)
-
+          print "arctan > 90"
+          
+        print ("angle of direction=", compass_angle)
         temp = (360 - self.pullHeading()) + compass_angle
         temp = temp % 360
-        #temp2 = 360 - temp
         temp2 = temp - 360
         if min(temp, abs(temp2)) == abs(temp2):
           return temp2
         else:
           return temp
-        
-        #compass_angle = -np.degrees(a) + 90.0 #calibrates to orientation of comapass from polar
-          #360 - heading + compass_angle
-          #this will return 210 if heading was 180.... why not do 150 instead, so we compare the two complementary values and use the smaller one
-          #if either is bigger than 360... mod 360
-      #***** temp2 should be temp - 360 to give negative, then we check if negative, then turn left with the abs angle of return
-        #return compass_angle
 
     def findCurrDistance(self):
-        self.waypointCounter = self.findWayPoint() # Bad!! call to findWayPoint()
+        self.waypointCounter = self.findWayPoint() 
         x1 = self.pathX[self.waypointCounter] - self.curX
         y1 = self.pathY[self.waypointCounter] - self.curY
-        dist = np.sqrt(abs(np.square(x1) + np.square(y1))) #may have to cast as float here
+        dist = np.sqrt(abs(np.square(x1) + np.square(y1))) 
         return dist
 
     def findAbsAngle(self):
@@ -204,17 +191,10 @@ class routeCalc:
     def pullHeading(self):
         c_pass.run() #Update the heading angle every time this method is called
         return c_pass.heading
-        #if math.isnan(gpsd.fix.track):
-        #  print "No Fix"
-        #  gpsd.fix.track = 0
-        #return gpsd.fix.track
         
     def calcTurn(self):
         angle = self.findCurrAngle()
-        #heading = self.pullHeading() #will have to implement real heading later
-        #diff = heading - angle
-
-        turnPWM = -2.0*angle + 375.0
+        turnPWM = -1.75*angle + 375.0
         if turnPWM < 150:
             turnPWM = 150 #logical minmum for turning
         if turnPWM > 600:
@@ -232,7 +212,8 @@ class routeCalc:
             speedPWM = 420
         if speedPWM > 575:
             speedPWM = 574
-        return speedPWM
+        # set to constant speed for testing
+        return 410 #speedPWM
 
 
     def pullLong(self):
@@ -249,7 +230,6 @@ class routeCalc:
         
 
     def move(self):
-
         self.curY = decimal.Decimal(self.pullLat())
         self.curX = decimal.Decimal(self.pullLong())
         angle = self.findCurrAngle()
@@ -264,7 +244,9 @@ class routeCalc:
         self.pwm.setPWM(1,0,int(speedPWM)) #--> moved this call into calcSpeed()
         print("current goal:" , (self.pathX[self.waypointCounter], self.pathY[self.waypointCounter]))
         print ("heading = ", c_pass.heading)
-        time.sleep(1)
+        # make sure sleep commented out when running
+        # can turn back on to see data
+       # time.sleep(1)
         
         
     def checkIfFinished(self):
@@ -289,8 +271,8 @@ class routeCalc:
         time.sleep(.1)
         self.pwm.setPWM(1, 0, self.servoCenter)
         time.sleep(.5)
+
     def testTurn(self):
-        print("hullo")
         self.pwm.setPWM(0,0,self.servoMax)
         time.sleep(.1)
         self.pwm.setPWM(0,0,self.servoMin)
@@ -298,11 +280,14 @@ class routeCalc:
         self.pwm.setPWM(0,0,500)
         time.sleep(.1)
         self.pwm.setPWM(0,0,220)
+
     def stopCar(self):
         print("Interrupted by user.")
         self.pwm.setPWM(1,0,375)
         self.pwm.setPWM(0,0,375)
         sys.exit(0)
+
+        
 def main():
     route = routeCalc(decimal.Decimal(0.0),decimal.Decimal(0.0))
     i = 0
@@ -320,35 +305,7 @@ def main():
             route.stopCar()
     route.stopCar()
     
-'''
-    #Calculates and prints relative distances between points
-    xSquaredList = [i ** 2 for i in route.pathX]
-    ySquaredList = [j ** 2 for j in route.pathY]
-    hypotenuselist = map(math.sqrt, map(add, xSquaredList, ySquaredList))
-    absAngles = route.findAbsAngle()
-    absDistances = route.findAbsDistance()
-    print "original x list: ",route.pathX
-    print "original y list: ",route.pathY
-    print "squared x list: ",xSquaredList
-    print "squared y list: ",ySquaredList
-    print "Relative distances: ",route.findDistance()
-    print "Absolute distances (from origin): ",absDistances
-    print "Relative angles: ",route.findAngle()
-    print "Absolute angles: ",absAngles
 
-    #Plots the points on Polar Plot. Note, must use absolute angles and distances
-    #TODO: Take in lists from those functions
-
-    angles = np.array(absAngles) 
-    lengths = np.array(absDistances) 
-    ax = plt.subplot(111, projection='polar')
-    ax.plot(angles * np.pi / 180, lengths, 'r', linewidth=3)
-    ax.set_rmax(112.602)
-    ax.set_rmin(112.600)
-    ax.grid(True)
-    ax.set_title("Simulating vehicle movement", va='bottom')
-    plt.show()
-    '''
 if __name__ == '__main__':
     gpsp = GpsPoller()
     gpsp.start()
@@ -356,7 +313,5 @@ if __name__ == '__main__':
 
 main()
 
-#TODO: Eventually figure out how to calculate proper direction (tangent(y/x))
-#TODO: Will need to add new parameter "facing" (in degrees)
 
 
