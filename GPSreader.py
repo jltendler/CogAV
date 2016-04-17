@@ -1,6 +1,6 @@
 import os
 from gps import *
-from time import *
+from time import * #
 import time
 import threading
  
@@ -48,7 +48,7 @@ if __name__ == '__main__':
       print 'mode        ' , gpsd.fix.mode
       print
       print 'sats        ' , gpsd.satellites
- 
+
       time.sleep(5) #set to whatever
  
   except (KeyboardInterrupt, SystemExit): #when you press ctrl+c

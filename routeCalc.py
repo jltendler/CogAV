@@ -10,12 +10,12 @@ import sys
 import os
 from gps import *
 import threading
-#from Adafruit_BNO055 import BNO055
+from Adafruit_BNO055 import BNO055
 
 
 gpsd = None
 #Initialize serial port for Compass
-#bno = BNO055.BNO055(serial_port='/dev/ttyAMA0', rst=18)
+bno = BNO055.BNO055(serial_port='/dev/ttyUSB0', rst=18)
 
 
 class GpsPoller(threading.Thread):
@@ -31,11 +31,12 @@ class GpsPoller(threading.Thread):
     while gpsp.running:
       gpsd.next() #this will continue to loop and grab EACH set of gpsd info to clear the buffer
 
-"""
+
 class compass(threading.Thread):
   def __init__(self):
     threading.Thread.__init__(self)
-    global bno #bring it in scope
+    #Initialize serial port for Compass
+    self.bno = BNO055.BNO055(serial_port='/dev/ttyUSB0', rst=18)
     # Initialize the BNO055 and stop if something went wrong.
     if not bno.begin():
       raise RuntimeError('Failed to initialize BNO055! Is the sensor connected?')
@@ -49,15 +50,16 @@ class compass(threading.Thread):
         print('See datasheet section 4.3.59 for the meaning.')
 
     print('Reading BNO055 data, press Ctrl-C to quit...')
-    while True:
-        # Read the Euler angles for heading, roll, pitch (all in degrees).
-        heading, roll, pitch = bno.read_euler()
-        # Read the calibration status, 0=uncalibrated and 3=fully calibrated.
-        sys, gyro, accel, mag = bno.get_calibration_status()
-        # Print everything out.
-        #print('Heading={0:0.2F} Roll={1:0.2F} Pitch={2:0.2F}\tSys_cal={3} Gyro_cal={4} Accel_cal={5} Mag_cal={6}'.format(
-        #      heading, roll, pitch, sys, gyro, accel, mag))
-""" 
+    # Read the Euler angles for heading, roll, pitch (all in degrees).
+
+  def run(self):
+    self.heading, pitch, roll = bno.read_euler()
+    # Read the calibration status, 0=uncalibrated and 3=fully calibrated.
+    sys, gyro, accel, mag = bno.get_calibration_status()
+    # Print everything out.
+    #print('Heading={0:0.2F} Roll={1:0.2F} Pitch={2:0.2F}\tSys_cal={3} Gyro_cal={4} Accel_cal={5} Mag_cal={6}'.format(
+    #      self.heading, roll, pitch, sys, gyro, accel, mag))
+ 
 
 class routeCalc:
     def __init__(self, curX, curY):
@@ -74,8 +76,8 @@ class routeCalc:
         
         
 	
-    pathX = np.array([40.00720, 40.00717, 40.00726, 40.00729, 40.00724, 40.00715, 40.00711, 40.00715])
-    pathY = np.array([-105.26394, -105.26405, -105.26408, -105.26423, -105.26432, -105.26423, -105.26415, -105.26405])
+    pathY = np.array([40.00582, 40.00603, 40.00604, 40.00573])
+    pathX = np.array([-105.2618, -105.26185, -105.26165, -105.26163])
     
     pathX=np.array([decimal.Decimal(abc) for abc in pathX])
     pathY=np.array([decimal.Decimal(abc) for abc in pathY])
@@ -105,7 +107,7 @@ class routeCalc:
 
 		
     increment = decimal.Decimal(0.0001) #Increment distance
-    threshold = decimal.Decimal(0.00003) #threshold to check if within certain distance
+    threshold = decimal.Decimal(0.00004) #threshold to check if within certain distance
 
     def findAngle(self):
 		#Needs to compare pathX/pathY to curX/curY
@@ -143,10 +145,28 @@ class routeCalc:
         x1 = self.pathX[self.waypointCounter] - self.curX
         y1 = self.pathY[self.waypointCounter] - self.curY
         a = np.arctan2(float(y1), float(x1))
-        if a < 0:
-            a = 2.0*np.pi + a
-        print("!!!WAYPOINT!!! :", self.waypointCounter)
-        return np.degrees(a)
+        #if a < 0:
+        #  a = 2.0*np.pi + a
+        if a <= 90:
+          compass_angle = 90 - a
+        else:
+          compass_angle = 360 - (a - 90)
+
+        temp = (360 - self.pullHeading()) + compass_angle
+        temp = temp % 360
+        #temp2 = 360 - temp
+        temp2 = temp - 360
+        if min(temp, abs(temp2)) == abs(temp2):
+          return temp2
+        else:
+          return temp
+        
+        #compass_angle = -np.degrees(a) + 90.0 #calibrates to orientation of comapass from polar
+          #360 - heading + compass_angle
+          #this will return 210 if heading was 180.... why not do 150 instead, so we compare the two complementary values and use the smaller one
+          #if either is bigger than 360... mod 360
+      #***** temp2 should be temp - 360 to give negative, then we check if negative, then turn left with the abs angle of return
+        #return compass_angle
 
     def findCurrDistance(self):
         self.waypointCounter = self.findWayPoint() # Bad!! call to findWayPoint()
@@ -158,7 +178,6 @@ class routeCalc:
     def findAbsAngle(self):
         #Calculating the absolute arctans of path
         absArctanList = []
-        print ("Finding abs angle")
         for i in range(len(self.pathX)):
                 absArctanList.append(np.arctan2(float(self.pathY[i]), float(self.pathX[i])))
 
@@ -183,54 +202,56 @@ class routeCalc:
         return absDistList
 
     def pullHeading(self):
-        #print ("heading = ", c_pass.heading )
-        #return c_pass.heading
-        if math.isnan(gpsd.fix.track):
-          print "No Fix"
-          gpsd.fix.track = 0
-        return gpsd.fix.track
+        c_pass.run() #Update the heading angle every time this method is called
+        return c_pass.heading
+        #if math.isnan(gpsd.fix.track):
+        #  print "No Fix"
+        #  gpsd.fix.track = 0
+        #return gpsd.fix.track
         
     def calcTurn(self):
         angle = self.findCurrAngle()
-        heading = self.pullHeading() #will have to implement real heading later
-        diff = heading - angle
-        turnPWM = -1.0*diff + 375.0
+        #heading = self.pullHeading() #will have to implement real heading later
+        #diff = heading - angle
+
+        turnPWM = -2.0*angle + 375.0
         if turnPWM < 150:
             turnPWM = 150 #logical minmum for turning
         if turnPWM > 600:
             turnPWM = 600 #logical maximum for turning
-        #150-fullLeft
+        #150-fullRight
         #375-straight
-        #600-fullRight
+        #600-fullLeft
         return turnPWM
 
     def calcSpeed(self):
         angle = self.findCurrAngle()
-        calibration = 5.0
-        heading = self.pullHeading()
-        diff = heading - angle
-        speedPWM = 600 - calibration*abs(diff)
+        calibration = 4.0
+        speedPWM = 450 - calibration*abs(angle)
         if speedPWM <= 375:
-            speedPWM = 400
+            speedPWM = 420
         if speedPWM > 575:
             speedPWM = 574
-        print("!!!HEADING!!! :", heading)
         return speedPWM
 
-    def updateLocation(self):
-        i = 0
-        while i < 2500:
-            (self.curX, self.curY) = self.read_Coordinate(i)
-            i += 1
-            print ("curX:",self.curX," curY:", self.curY)
 
-    #def pullLong(self):
+    def pullLong(self):
+        if math.isnan(gpsd.fix.longitude):
+          print "No Fix"
+          gpsd.fix.longitude = 0
+        return gpsd.fix.longitude
+
+    def pullLat(self):
+        if math.isnan(gpsd.fix.latitude):
+          print "No Fix"
+          gpsd.fix.latitude = 0
+        return gpsd.fix.latitude
         
 
     def move(self):
 
-        self.curX = decimal.Decimal(gpsd.fix.latitude)
-        self.curY = decimal.Decimal(gpsd.fix.longitude)
+        self.curY = decimal.Decimal(self.pullLat())
+        self.curX = decimal.Decimal(self.pullLong())
         angle = self.findCurrAngle()
         turnPWM = self.calcTurn()
         speedPWM = self.calcSpeed()
@@ -241,7 +262,10 @@ class routeCalc:
         print ("setting speed PWM to:", int(speedPWM)) # Also in calcSpeed()
         self.pwm.setPWM(0,0,int(turnPWM)) #--> moved this call into calcTurn()
         self.pwm.setPWM(1,0,int(speedPWM)) #--> moved this call into calcSpeed()
-        time.sleep(.2)
+        print("current goal:" , (self.pathX[self.waypointCounter], self.pathY[self.waypointCounter]))
+        print ("heading = ", c_pass.heading)
+        time.sleep(1)
+        
         
     def checkIfFinished(self):
         #Checks if current coordinates are within threshold of the specified end of path
@@ -280,7 +304,7 @@ class routeCalc:
         self.pwm.setPWM(0,0,375)
         sys.exit(0)
 def main():
-    route = routeCalc(decimal.Decimal(40.00720),decimal.Decimal(-105.26394))
+    route = routeCalc(decimal.Decimal(0.0),decimal.Decimal(0.0))
     i = 0
     xRoute = []
     yRoute = []
@@ -328,7 +352,7 @@ def main():
 if __name__ == '__main__':
     gpsp = GpsPoller()
     gpsp.start()
-    #c_pass = compass()
+    c_pass = compass()
 
 main()
 
