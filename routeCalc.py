@@ -201,7 +201,7 @@ class routeCalc:
 
     def findWayPoint(self):
         if self.checkIfFinished():
-            print ("MISSION FUCKING ACCOMPLISHED BOYS")
+            print ("Final Waypoint Reached")
             return self.waypointCounter
         if self.checkIfAtPair(self.waypointCounter):
             self.waypointCounter += 1
