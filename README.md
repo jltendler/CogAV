@@ -18,7 +18,7 @@ avoidObstacle.py: Intiial thinking for avoiding obstacles
 
 coordinates.txt: Output form waypointGenerator.py
 
-routeCalc.py: our main program
+**routeCalc.py: our main program**
 
 routeCalc_Functional.py: old main program
 
