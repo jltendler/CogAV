@@ -37,6 +37,8 @@ class rangeFinder(threading.Thread):
       GPIO.setup(20,GPIO.IN)
       GPIO.output(21, GPIO.LOW)
 
+      #add delay so it won't crash
+      #time.sleep(0.3)
 
       # start the pulse on the GPIO pin 
       # change this value to the pin you are using
@@ -68,6 +70,9 @@ class rangeFinder(threading.Thread):
       GPIO.setup(19,GPIO.OUT)
       GPIO.setup(16,GPIO.IN)
       GPIO.output(19, GPIO.LOW)
+
+      #add delay so it won't crash
+      time.sleep(0.1)
 
       GPIO.output(19, True) #right sensor
       # wait 10 micro seconds (this is 0.00001 seconds) so the pulse
@@ -143,9 +148,16 @@ class routeCalc:
         
         
 	
-    pathY = np.array([40.006060, 40.005865, 40.005609, 40.005577])
-    pathX = np.array([-105.262608, -105.262627, -105.262399, -105.262642])
-    
+    #pathY = np.array([40.007300, 40.007277, 40.007214, 40.00712, 40.00715, 40.007114, 40.007267, 40.007303, 40.007314, 40.007346, 40.007349, 40.007311, 40.007298, 40.007286, 40.007514, 40.007901, 40.008169, 40.008325, 40.008376, 40.008453])
+    #pathX = np.array([-105.264190, -105.264066, -105.264030, -105.26408, -105.26416, -105.264197, -105.264413, -105.264790, -105.264934, -105.265380, -105.266120, -105.266362, -105.266699, -105.267039, -105.267041, -105.267031, -105.267021, -105.267046, -105.267378, -105.267720])
+
+    #outside kobel field
+    pathY = np.array([40.006003, 40.006008])
+    pathX = np.array([-105.264075, -105.264346])
+    #Business field far from sidewalk
+    #pathY = np.array([40.005397, 40.005392, 40.005230, 40.005262])
+    #pathX = np.array([-105.262467, -105.262114, -105.262173, -105.262445])
+
     pathX=np.array([decimal.Decimal(abc) for abc in pathX])
     pathY=np.array([decimal.Decimal(abc) for abc in pathY])
     for x in range(len(pathX)):
@@ -174,7 +186,7 @@ class routeCalc:
 
 		
     increment = decimal.Decimal(0.0001) #Increment distance
-    threshold = decimal.Decimal(0.00004) #threshold to check if within certain distance
+    threshold = decimal.Decimal(0.00002) #threshold to check if within certain distance
 
     def findAngle(self):
 		#Needs to compare pathX/pathY to curX/curY
@@ -201,7 +213,7 @@ class routeCalc:
 
     def findWayPoint(self):
         if self.checkIfFinished():
-            print ("Final Waypoint Reached")
+            print ("Final Waypoint Reached!!")
             return self.waypointCounter
         if self.checkIfAtPair(self.waypointCounter):
             self.waypointCounter += 1
@@ -287,7 +299,7 @@ class routeCalc:
         if speedPWM > 575:
             speedPWM = 574
         # set to constant speed for testing
-        return 410 #speedPWM
+        return 405 #speedPWM
 
 
     def pullLong(self):
@@ -301,29 +313,66 @@ class routeCalc:
           print "No Fix"
           gpsd.fix.latitude = 0
         return gpsd.fix.latitude
-        
 
+    def avoid2Left(self):
+        self.pwm.setPWM(1,0,int(395)) 
+        self.pwm.setPWM(0,0,int(600))
+
+    def avoid2Right(self):
+        self.pwm.setPWM(1,0,int(395))
+        self.pwm.setPWM(0,0,int(150))
+
+    def avoidObstacle(self, left, right):
+        l = left
+        r = right
+        #chooses to turn in direction of largest sensor distance
+        if (l > r):
+          self.avoid2Left()
+          new_left = leftSensor
+          if ((new_left / r) < (l / r)):
+            self.avoid2Right()
+        elif (r > l):
+          self.avoid2Right()
+          new_right = rightSensor
+          if ((new_right / l) < (r / l)):
+            self.avoid2Left()
+        
+    def checkBetweenTwo(self,x,up,low):
+      if (x>low and x<up):
+        return True
+      else:
+        return False
     def move(self):
-        self.curY = decimal.Decimal(self.pullLat())
-        self.curX = decimal.Decimal(self.pullLong())
-        angle = self.findCurrAngle()
-        turnPWM = self.calcTurn()
-        speedPWM = self.calcSpeed()
-        #print ("curX:", self.curX)
-        #print ("curY:", self.curY)
-        #print ("angle is equal to:", angle) 
-        #print ("setting turn PWM to:", int(turnPWM)) # Also in calcTurn()
-        #print ("setting speed PWM to:", int(speedPWM)) # Also in calcSpeed()
-        self.pwm.setPWM(0,0,int(turnPWM)) #--> moved this call into calcTurn()
-        self.pwm.setPWM(1,0,int(speedPWM)) #--> moved this call into calcSpeed()
-        #print("current goal:" , (self.pathX[self.waypointCounter], self.pathY[self.waypointCounter]))
-        #print ("heading = ", c_pass.heading)
-        # make sure sleep commented out when running
-        # can turn back on to see data
-        findRange.reading(0)
-        findRange.reading(1)
-        print("Left: "+ str(leftSensor) +" Right: "+str(rightSensor))
-       # time.sleep(1)
+        Uthreshold = 150.0
+        Lthreshold = 10.0
+
+        if (self.checkBetweenTwo(leftSensor,Uthreshold,Lthreshold) or self.checkBetweenTwo(rightSensor,Uthreshold,Lthreshold) ):
+          self.avoidObstacle(leftSensor, rightSensor)
+          findRange.reading(0)
+          findRange.reading(1)
+          print("AvoidLeft: "+ str(leftSensor) +" AvoidRight: "+str(rightSensor))
+
+        else:
+          self.curY = decimal.Decimal(self.pullLat())
+          self.curX = decimal.Decimal(self.pullLong())
+          angle = self.findCurrAngle()
+          turnPWM = self.calcTurn()
+          speedPWM = self.calcSpeed()
+          #print ("curX:", self.curX)
+          #print ("curY:", self.curY)
+          #print ("angle is equal to:", angle) 
+          #print ("setting turn PWM to:", int(turnPWM)) # Also in calcTurn()
+          #print ("setting speed PWM to:", int(speedPWM)) # Also in calcSpeed()
+          self.pwm.setPWM(0,0,int(turnPWM)) #--> moved this call into calcTurn()
+          self.pwm.setPWM(1,0,int(speedPWM)) #--> moved this call into calcSpeed()
+          #print("current goal:" , (self.pathX[self.waypointCounter], self.pathY[self.waypointCounter]))
+          #print ("heading = ", c_pass.heading)
+          # make sure sleep commented out when running
+          # can turn back on to see data
+          findRange.reading(0)
+          findRange.reading(1)
+          print("Left: "+ str(leftSensor) +" Right: "+str(rightSensor))
+          # time.sleep(1)
         
         
     def checkIfFinished(self):
@@ -390,6 +439,4 @@ if __name__ == '__main__':
     findRange = rangeFinder()
 
 main()
-
-
 
